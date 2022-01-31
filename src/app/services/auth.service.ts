@@ -1,42 +1,29 @@
-import { HttpClient, HttpHandler, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
-import { LoginUser } from '../AuthenticateUser';
-import { User } from '../GetUserDetails';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl : string = environment.baseUrl;
-  private publicHeaders = {
-    headers: new HttpHeaders({
-      'content-type': 'application/json',
-      'accept': '*/*',
-      'Access-Control-Allow-Origin': 'http://localhost:4200'
-    }),
+
+  constructor(
+    private router: Router,
+    private http:HttpClient) { }
+
+  login(username: string, password: string) {
+    return this.http.post<any>(`${environment.baseUrl}/Account/Login`, { username, password })
   }
 
-  constructor(private http: HttpClient) {
-   }
-
-   login(data: LoginUser){
-     console.log("trimitem: ", data)
-    const authPath = '/AuthenticateUser';
-    return this.http.post(
-      this.baseUrl + authPath,
-      data,
-      this.publicHeaders)
-   }
-
-   register(data: User){
-    const registerPath = '/GetUserDetails';
-    let url = this.baseUrl + registerPath;
-    console.log("URL", url)
-    console.log("trimitem: ", data)
-    return this.http.post(
-      url,
-      data,
-      this.publicHeaders)
-   }
+  register(username: string, emailAddress: string, password: string) {
+    return this.http.post<any>(`${environment.baseUrl}/Account/Register`, { username, emailAddress, password })
+  }
+  
+  logout() {
+    // remove user from local storage to log user out
+    localStorage.removeItem('Token');
+    localStorage.removeItem('Role');
+    this.router.navigate(['/login']);
+  }
 }
