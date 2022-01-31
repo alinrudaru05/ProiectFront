@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -7,25 +10,48 @@ import { FormGroup, FormBuilder, Validators } from '@angular/forms';
   styleUrls: ['./register.component.css']
 })
 export class RegisterComponent implements OnInit {
+  
+  formGroup: FormGroup;
+  error = ''
 
-  successMessage:string =""
-
-  regForm!:FormGroup
-
-  constructor(private fb: FormBuilder) { } 
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private toastr: ToastrService) { }
 
   ngOnInit(): void {
-    this.regForm = this.fb.group({
-      name: ['',[Validators.required]],
-      mobileNumber: ['',[Validators.required, Validators.min(1000000000),Validators.max(9999999999)]],
-      email:['',[Validators.required, Validators.pattern("[a-zA-Z0-9]*@gmail.com")]],
-      password: ['',[Validators.required,Validators.pattern("[a-zA-z@_]{6,}")]]
-    })
+    if(localStorage.getItem('Token')){
+      this.router.navigate(['/']);
+    }
+
+    this.formGroup = new FormGroup({
+      username: new FormControl('', [Validators.required]),
+      emailAddress: new FormControl('', [Validators.required]),
+      password: new FormControl('', [Validators.required]),
+    });
   }
 
-  register(){
-    this.successMessage = "Successfully Registered..."
-    // console.log(this.regForm)
+  get formData() { return this.formGroup.controls; }
+
+  register() {
+    if (this.formGroup.invalid) {
+      return;
+    }
+    
+    this.authService.register(this.formData['username'].value, this.formData['emailAddress'].value, this.formData['password'].value)
+      .subscribe((response:any) => {
+          if(response) {
+            this.toastr.clear()
+            this.toastr.success("User registered successfully");
+            this.router.navigate(['/login']);
+          }
+        },
+        error => {
+          this.error = error.error;
+        });
   }
 
+  login() {
+    this.router.navigate(['/login']);
+  }
 }

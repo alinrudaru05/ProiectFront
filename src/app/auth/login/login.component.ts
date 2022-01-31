@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { AuthService } from 'src/app/services/auth.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-login',
@@ -7,20 +10,54 @@ import { FormGroup, FormBuilder, Validators } from '@angular/forms';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
+  formGroup: FormGroup;
+  error = '';
 
-  successMessage:string ="";
-  loginForm!: FormGroup; 
-  constructor(private fb: FormBuilder) { } 
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private toastr: ToastrService) { }
 
   ngOnInit(): void {
-    this.loginForm = this.fb.group({
-      email:['',[Validators.required, Validators.pattern("[A-Za-z0-9]*@gmail.com")]],
-      password:['',[Validators.required,Validators.pattern("[A-Za-z0-9@!_]{6,}")]]
-    })
+    if(localStorage.getItem('Token')){
+      this.router.navigate(['/']);
+    }
+
+    this.formGroup = new FormGroup({
+      username: new FormControl('', [Validators.required]),
+      password: new FormControl('', [Validators.required]),
+    });
   }
 
-  login(){
-    this.successMessage="Successfully Loggined In..."
+  // convenience getter for easy access to form fields
+  get formData() { return this.formGroup.controls; }
+
+  login() {
+    // stop here if form is invalid
+    if (this.formGroup.invalid) {
+      return;
+    }
+    
+    this.authService.login(this.formData['username'].value, this.formData['password'].value)
+      .subscribe((response:any) => {
+        if(response && response.token) {
+          this.toastr.clear()
+          this.toastr.success("Login successfull");
+          localStorage.setItem('Token', JSON.stringify(response.token));
+          
+          let tokenData = response.token.split('.')[1]
+          let decodedTokenData = JSON.parse(window.atob(tokenData))
+          localStorage.setItem('Role', decodedTokenData["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]);
+
+          this.router.navigate(['/']);
+        }
+      },
+      error => {
+        this.error = error.error;
+      });
   }
 
+  register() {
+    this.router.navigate(['/register']);
+  }
 }
